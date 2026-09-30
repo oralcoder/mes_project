@@ -338,4 +338,60 @@ def add_production_order(
 
         return cursor.lastrowid    
 
-    
+
+def get_production_orders():
+
+    with get_db_connection() as conn:
+
+        rows = conn.execute(
+            """
+            SELECT *
+            FROM production_orders
+            ORDER BY order_id DESC
+            """
+        ).fetchall()
+
+        return [
+            dict(row)
+            for row in rows
+        ]
+
+def start_production(order_id):
+
+    with get_db_connection() as conn:
+
+        cursor = conn.execute(
+            """
+            UPDATE production_orders
+
+            SET status = 'running',
+                actual_start_at = datetime('now', 'localtime')
+
+            WHERE order_id = ?
+            """,
+            (order_id,)
+        )
+
+        conn.commit()
+
+        return cursor.rowcount 
+
+def complete_production(order_id):
+
+    with get_db_connection() as conn:
+
+        cursor = conn.execute(
+            """
+            UPDATE production_orders
+
+            SET status = 'completed',
+                actual_end_at = datetime('now', 'localtime')
+
+            WHERE order_id = ?
+            """,
+            (order_id,)
+        )
+
+        conn.commit()
+
+        return cursor.rowcount

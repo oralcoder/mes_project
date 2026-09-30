@@ -2,11 +2,21 @@ from fastapi import FastAPI
 import service
 
 from fastapi import Body
+from fastapi import Request
+from fastapi import Form
+from fastapi.responses import RedirectResponse
+
+from fastapi.responses import HTMLResponse
+from fastapi.templating import Jinja2Templates
 
 app = FastAPI(
     swagger_ui_parameters={
         "operationsSorter": "alpha"
     }
+)
+
+templates = Jinja2Templates(
+    directory="templates"
 )
 
 
@@ -31,10 +41,19 @@ def get_lines(status: str | None = None):
     return result
 
 
-@app.get("/api/products")
-def get_product():
+@app.get("/api/products", response_class=HTMLResponse)
+
+def get_products(request: Request):
+
     result = service.get_products()
-    return result
+
+    return templates.TemplateResponse(
+        request=request,
+        name="products.html",
+        context={
+            "products": result
+        }
+    )
 
 @app.get("/api/production")
 def get_production():
@@ -148,17 +167,21 @@ def update_line(
 # ============================================================
 
 @app.post("/api/products")
-def create_product(data: dict = Body(...)):
+
+def create_product(
+    product_id: str = Form(...),
+    product_name: str = Form(...)
+):
 
     product_id = service.add_product(
-        data["product_id"],
-        data["product_name"]
+        product_id,
+        product_name
     )
-
-    return {
-        "success": True,
-        "product_id": product_id
-    }
+		
+    return RedirectResponse(
+        url="/api/products",
+        status_code=303
+    )
 
 
 # ============================================================
@@ -203,3 +226,54 @@ def create_order(data: dict = Body(...)):
         "order_id": order_id,
         "status": "planned"
     }    
+
+@app.get("/api/orders")
+def get_orders():
+
+    return service.get_production_orders()
+
+@app.put("/api/orders/{order_id}/start")
+def start_production(order_id: int):
+
+    affected = service.start_production(order_id)
+
+    if affected == 0:
+        return {
+            "success": False,
+            "message": "작업지시를 찾을 수 없습니다."
+        }
+
+    return {
+        "success": True,
+        "order_id": order_id,
+        "status": "running"
+    }
+
+@app.put("/api/orders/{order_id}/complete")
+def complete_production(order_id: int):
+
+    affected = service.complete_production(order_id)
+
+    if affected == 0:
+        return {
+            "success": False,
+            "message": "작업지시를 찾을 수 없습니다."
+        }
+
+    return {
+        "success": True,
+        "order_id": order_id,
+        "status": "completed"
+    }
+
+@app.get("/test", response_class=HTMLResponse)
+def test_page(request: Request):
+
+    return templates.TemplateResponse(
+        request=request,
+        name="test.html",
+        context={
+            "title": "MES",
+            "message": "Web MES"
+        }
+    )
