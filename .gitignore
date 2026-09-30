@@ -1,0 +1,15 @@
+# Python
+__pycache__/
+*.py[cod]
+
+# 가상환경
+.venv/
+venv/
+env/
+
+# 환경변수 / API Key
+.env
+.env.*
+
+# VS Code
+.vscode/
